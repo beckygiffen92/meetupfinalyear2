@@ -1,10 +1,10 @@
 module.exports = {
-    isAuth: (req, res, next) => {
+    friendIsAdded: (req, res, next) => {
         try {
             if (req.isAuthenticated()) {
                 return next();
             } else {
-                res.redirect('/signin');
+                res.redirect('/addFriend');
             }
         } catch (err) {
             console.log(err.message);

@@ -9,14 +9,19 @@ var bcrypt = require('bcryptjs');
 const passport = require('passport');
 const session = require('express-session');
 
-const port = process.env.port || 3000;
+
+
+const port = process.env.PORT || 3000;
 //const mongoURL = process.env.mongoURL || 'mongodb://localhost:27017/handlebars'
 
 const { isAuth } = require('./middleware/isAuth');
+const { Search } = require('./middleware/Search');
 require('./middleware/passport')(passport);
 
 const Contact = require('./models/Contact');
 const User = require('./models/User');
+//const Calendar = require('./models/Calendar');
+//const UserInputRota = require('./models/User');
 
 app.use(express.static('public'));
 
@@ -45,7 +50,7 @@ app.engine('hbs', handlebars({
 
 app.get('/', (req, res) => {
     try {
-        res.render('login', { layout: 'main' });
+        res.render('signIn', { layout: 'main' });
     } catch (err) {
         console.log(err.message);
         res.status(500).send('Server Error')
@@ -78,9 +83,87 @@ app.get('/signout', (req, res) => {
     res.redirect('/');
 })
 
+app.get('/signup', (req, res) => {
+    try {
+        res.render('signUp', { layout: 'main' });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send('Server Error')
+    }
+
+})
+
+app.get('/home', (req, res) => {
+    try {
+        res.render('home', { layout: 'main', personalisedName: req.user.personalisedName });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send('Server Error')
+    }
+})
+
+app.get('/myrota', (req, res) => {
+    try {
+        res.render('myrota', { layout: 'main' });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send('Server Error')
+    }
+})
+
+app.get('/myfriends', (req, res) => {
+    try {
+        res.render('myfriends', { layout: 'main' });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send('Server Error')
+    }
+})
+app.get('/mygroups', (req, res) => {
+    try {
+        res.render('mygroups', { layout: 'main' });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send('Server Error')
+    }
+})
+app.get('/mymeets', (req, res) => {
+    try {
+        res.render('mymeets', { layout: 'main' });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send('Server Error')
+    }
+})
+app.get('/calendar', (req, res) => {
+    try {
+        res.render('calendar', { layout: 'main' });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send('Server Error')
+    }
+})
+
+app.get('/addNewGroup', (req, res) => {
+    try {
+        Contact.find({  }).lean()
+        .exec((err, contacts) => {
+            if (contacts.length) {
+                res.render('newgroup', { layout: 'main', contacts: contacts, contactsExist: true });
+            } else {
+                res.render('newgroup', { layout: 'main', contacts: contacts, contactsExist: false });
+            }})
+
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send('Server Error')
+    }
+
+})
+
 //POST Signup
 app.post('/signup', async (req, res) => {
-    const { username, password } = req.body;
+    const { username, personalisedName, password } = req.body;
     try {
         let user = await User.findOne({ username });
         //If user exists stop the process and render login view with userExist true
@@ -89,6 +172,7 @@ app.post('/signup', async (req, res) => {
         }
         //If user does not exist, then continue
         user = new User({
+            personalisedName,
             username,
             password
         });
@@ -98,7 +182,7 @@ app.post('/signup', async (req, res) => {
         user.password = await bcrypt.hash(password, salt);
 
         await user.save();
-        res.status(200).render('login', { layout: 'main', userDoesNotExist: true });
+        res.status(200).render('signIn', { layout: 'main', userDoesNotExist: true });
     } catch (err) {
         console.log(err.message);
         res.status(500).send('Server Error')
@@ -108,7 +192,7 @@ app.post('/signup', async (req, res) => {
 app.post('/signin', (req, res, next) => {
     try {
         passport.authenticate('local', {
-            successRedirect: '/dashboard',
+            successRedirect: '/home',
             failureRedirect: '/?incorrectLogin'
         })(req, res, next)
     } catch (err) {
@@ -118,18 +202,85 @@ app.post('/signin', (req, res, next) => {
 
 })
 
-app.post('/addContact', (req, res) => {
+
+app.post('/addFriend', (req, res) => {
     //Uses destructuring to extract name, email and number from the req
-    const { name, email, number } = req.body;
+    const { email } = req.body;
     try {
         let contact = new Contact({
-            name,
-            email,
-            number
+            email
         });
 
         contact.save()
-        res.redirect('/dashboard?contactSaved');
+        res.redirect('/home?contactSaved');
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send('Server Error')
+    }
+
+})
+app.post('/addContact', (req, res) => {
+    //Uses destructuring to extract name, email and number from the req
+    const { email } = req.body;
+
+    let contact = new Contact({
+        
+        email
+    });
+
+    contact.save()
+    res.redirect('/home?contactSaved');
+})
+
+app.post('/addUserToGroup', (req, res) => {
+    //Uses destructuring to extract name, email and number from the req
+    const { email, groupName } = req.body;
+
+    let contact = new Contact({
+        
+        groupName,
+        email
+    });
+
+    contact.save()
+    res.redirect('/mygroups?groupSaved');
+})
+
+
+
+// app.post('/addContact', async (req, res) => {
+//     const { username } = req.body;
+//     try {
+//         let user = await User.findOne({ username });
+//         //If user exists stop the process and render login view with userExist true
+//         if (user) {
+//             return res.status(400).render('login', { layout: 'main', userExist: true });
+//         }
+//         //If user does not exist, then continue
+//         user = new User({
+//             username,
+           
+//         });
+//         //Salt Generation
+
+//         await user.save();
+//         res.status(200).render('myfriends', { layout: 'main', userDoesNotExist: true });
+//     } catch (err) {
+//         console.log(err.message);
+//         res.status(500).send('Server Error')
+//     }
+// })
+
+app.post('/addNewGroup', (req, res) => {
+    //Uses destructuring to extract name, email and number from the req
+    const { groupName } = req.body;
+    try {
+        let group = new Group({
+            groupName
+        });
+
+        contact.save()
+        res.redirect('/mygroups?groupSaved');
     } catch (err) {
         console.log(err.message);
         res.status(500).send('Server Error')

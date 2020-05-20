@@ -1,10 +1,10 @@
 module.exports = {
-    isAuth: (req, res, next) => {
+    groupIsAdded: (req, res, next) => {
         try {
             if (req.isAuthenticated()) {
                 return next();
             } else {
-                res.redirect('/signin');
+                res.redirect('/newgroup');
             }
         } catch (err) {
             console.log(err.message);
